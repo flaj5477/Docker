@@ -1,0 +1,13 @@
+version: "3.7"
+services:
+    com1:
+      build: .././dockerfiles
+      image: testcom1
+      stdin_open: true
+      tty: true
+    com2:
+      extends:
+        file: docker-compose.yml
+        service: wordpressdb
+      depends_on:
+        - com1

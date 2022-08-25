@@ -1,0 +1,5 @@
+FROM ubuntu:latest
+RUN ["/bin/bash","-c","apt-get update"]
+COPY test1.html /home/
+COPY ["test2.html","/home/"]
+VOLUME /home/volume

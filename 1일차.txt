@@ -1,0 +1,117 @@
+AWS, 코랩 프로를 많이 쓰심.
+
+구글 클라우드 코랩 프로, AWS사용하면 더 편하다. 
+
+트레이스..
+소스 인사이트 
+
+도커는 리눅스 기반 
+vi 
+nano
+
+msc
+인공지능은 쉬워졌음
+빅데이터 처리가 뜨는중..
+빅데이터 정규화 작업이 중요함.
+
+웹 크롤링 -> 선거 당선 예상 80% 넘었음
+비전공자.. 대단하당..
+
+빅데이터 처럼 비정규화 데이터가 많은 것들은 nonSQL로 관리 
+오라클 안씀
+
+<오후수업_실습시작>
+www.docker.com에서 get-started 에서 Download for Windows 설치 
+
+
+<shell1_도커 설정용>
+$docker version
+$docker info
+$docker system df -v
+
+$docker images
+$docker image ls 
+
+$docker pull nginx
+$docker image ls
+
+$docker run --name mynginx -p 8000:80 -d nginx (-d는 접속 없이 실행 하겠다는 옵션)
+
+$docker cp mynginx:/usr/share/nginx/html/index.html index.html
+현재 파일에 index.html을 복사
+
+$ls
+현재 폴더에 index.html 복사된거 보임
+
+html파일 수정~~
+
+$docker cp index.html mynginx:/usr/share/nginx/html/index.html
+수정한 html파일 컨테이너에 붙여넣음
+
+http://localhost:8000번으로 접속하니까 html파일 수정한걸로 보임.
+
+$docker commit mynginx mynginx_image
+$docker images
+방금 만든 이미지 파일 보임.
+
+$docker ps
+$docker stop mynginx
+$docker start mynginx
+$docker ps -q
+$docker rm mynginx
+에러남, 지금 돌아가고 있는 도커 삭제하려고 해서 그럼
+$docker rm -f mynginx
+$docker run --name mynginx2 -p 8000:80 -d mynginx_image
+
+
+--지금부터 순번 매길꺼임
+1$docker run -it --name test1 ubuntu
+2# ifconfig
+에러
+3# ping
+에러
+4# apt-get update
+5# apt-get install net-tools (ifconfig 설치)
+6#ifcofig
+이제 ip값 보임 
+7# apt-get install -y iputils-ping(ping 설치)
+8# ping www.kun.ac.kr
+핑 잘감
+9# Ctrl+D 종료
+
+ubuntu 이미지 사용하는 container 다 지우고
+ubuntu 이미지도 삭제
+
+10$ docker pull ubuntu
+11$ docker create -it --name test2 ubuntu (우분투 이미지로 test2 컨테이너 생성)
+12$ docker start test2
+13$ docker ps 
+방금 돌린 test2 컨테이너가 나옴
+
+14$ docker exec test2 apt-get update(컨테이너 안에서 apt-get update를 실행시킴)
+15$ docker exec test2 apt-get install net-tools
+16$ docker exec test2 apt-get install -y iputils-ping
+17$ docker exec test2 ifconfig
+18$ docker exec test2 ping www.knu.ac.kr
+
+
+
+
+<shell2_도커 접속용>
+$docker exec -it mynginx /bin/bash
+# find / -name index.html 2>/dev/null 
+2(에러)를 dev/null로 보내달라
+결과> /usr/share/nginx/html/index.html
+
+
+
+
+
+
+
+
+
+
+
+
+

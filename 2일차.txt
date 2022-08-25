@@ -1,0 +1,328 @@
+컨테이너 애플리케이션 구축
+- 서비스 컨테이너화
+한 컨테이너에 하나의 서비스만 구동
+컨테이너간 독립성 보장
+
+워드프레스 블로그 서비스 구축
+
+쿠버네티스 이해할라면 상태처리도 처럼 그림을 그려야 이해가 됨.
+
+인공지능 관심있으면 쿠다 사용추천
+
+$은 도커 밖에서 실행
+#은 도커 안에서 실행
+
+<쉘1>
+1$ docker run -d --name wordpressdb -e MYSQL_ROOT_PASSWORD=pw -eMYSQL_DATABASE=wordpress mysql:latest
+2$ docker run -d --name wordpress --link wordpressdb:mysql -p 80 wordpress
+6$ docker ps
+wordpress 컨테이너 PORT번호 보기 65176
+
+8$ docker run -d --name wordpress2 -e WORDPRESS_DB_PASSWORD=pw -e WORDPRESS_DB_USER=root --link wordpressdb:mysql -p 80 wordpress
+
+9$ docker ps
+wordpress2 컨테이너 port번호 65244
+
+11$ docker login
+12$ docker search ubuntu
+도커허브에 올라온 ubuntu라는 이름을 가진 이미지들을 검색
+
+13$ docker run -it --name commit_test ubuntu
+14# echo test_first!! >>first
+exit
+15$ docker ps -a
+16$ docker commit -a "Hwajung" -m "MY first commit" commit_test commit_test:first
+17$ docker images 
+commit_test라는 이름으로 이미지 생성된거 확인
+18$ docker image inspect commit_test:first
+이미지의 정보를 보여달라
+"Layers": [
+                "sha256:629d9dbab5edeac7fa51f205839d7f9bb629a5e83548da3a183fb66c22fe7af7",
+                "sha256:0e36f74e5886406f8ad81596ec9051809369dc3cf774ade37dcb4cb836f1d1ab"
+여기에 레이어가 두개인걸 볼수 있음
+19$ docker image inspect commit_test:first --format="{{.RootFS}}"
+{layers [sha256:629d9dbab5edeac7fa51f205839d7f9bb629a5e83548da3a183fb66c22fe7af7 sha256:0e36f74e5886406f8ad81596ec9051809369dc3cf774ade37dcb4cb836f1d1ab] }
+요렇게 필요한 부분만 볼수도 있음
+
+20$ docker image inspect ubuntu --format="{{.RootFS}}"
+{layers [sha256:629d9dbab5edeac7fa51f205839d7f9bb629a5e83548da3a183fb66c22fe7af7] }
+이걸로 보면 우분투 이미지 위에 하나의 레이어가 쌓인게 commit_test이미지라는걸 알수 있음
+
+21$ docker run -it --name commit_test2 commit_test:first
+22# echo test_second!!! >>second
+23# ls
+second 파일 있음확인
+24# exit
+
+25$ docker commit -a "Hwajung" -m "My second commit" commit_test2 commit_test:second
+26$ docker images
+commit_test:second 이미지 확인
+27$ docker image inspect commit_test:second --format="{{.RootFS}}"
+commit_test:firtst 이미지에서 레이어가 하나 더 생긴걸 확인 할 수 있음
+
+28$ docker rmi -r commit_test:first
+unknown shorthand flag: 'r' in -r
+-r 옵션 없어짐!
+
+29$ docker stop commit_test2
+30$ docker rm commit_test2
+
+31$ docker images
+commit_test:first랑 second둘다 inUse 상태 아닌거 확인
+
+32$ docker rmi commit_test:first
+Untagged: commit_test:first
+delete가 아니라 untagged라고 뜸
+이게 commit_test:second에서 쓰고 있기 때문에 실제로 지운건 아니고 태그만 삭제한것
+
+33$ docker image inspect commit_test:second --format="{{.RootFS}}"
+commit_test:second 정보를 보면 레이어가 그대로 인것 알수 있다. 
+
+34$ docker rmi commit_test:second
+Untagged: commit_test:second
+Deleted: sha256:c793858d8f7866cf44b39cb6b2c1fde3e387781e22660448ee7edbf12b08130a
+Deleted: sha256:847719352f0b5b61c049e9b2c629890575dfc2f79fd8b841d73e031868941b5a
+Deleted: sha256:b23a695f1a42f1b1fffb77e1ac74cec68c1728d8831d37c8611cd1c4f3a5946d
+Deleted: sha256:08f9f3638db0f3329098afbe71e35727d6c2fad0e48d7885fd7d0481ae8b8110
+아까 first를 지울때는 untagged까지만 실행되었는데 
+second를 삭제하니까 실제로 layer deleted까지 실행된다
+
+35$ cd d:
+36$ cd docker_khj
+37$ docker save -o ubuntu_latest.tar ubuntu:latest
+tar파일 생긴거 확인
+
+38$ docker rm commit_test
+39$ docker rmi ubuntu:latest
+40$ docker load -i ubuntu_latest.tar
+아까 save한거 다시 load로 이미지 살리기
+
+41$ docker export -o rootFS.tar wordpress
+42$ docker import rootFS.tar myimage:0.0
+??왜 export는 컨테이너로 했는데 import는 이미지로 될까??
+
+42-2$ docker images
+myimage:0.0이 만들어진거 확인
+
+
+
+43$  docker run -it --name commit_container1 ubuntu:latest
+44# echo my first push >>test
+45# ls
+46# exit
+47$ docker ps -a
+48$ docker commit commit_container1 hjimage:8.24
+49$ docker images
+50$ docker tag hjimage:8.24 floraj2/hjimage:8.24
+51$ docker images
+52$ docker login
+53$ docker push floraj2/hjimage:8.24
+54$ docker rmi floraj2/hjimage:8.24
+55$ docker images
+56$ docker pull floraj2/hjimage:8.24
+
+57$ docker images
+58$ docker push hjimage
+59$ docker push hjimage:8.24
+
+
+--도커 볼륨 시작--
+---물리적 저장소 공유---
+60$ docker run -d --name wordpressdb_hostvolume -e MYSQL_ROOT_PASSWORD=pw -e MYSQL_DATABASE=wordpress -v d:/docker_khj/wordfolder:/var/lib/mysql mysql
+61$ cd wordfolder 
+62$ echo testing!!!! >>testfile.txt
+63$ docker exec wordpressdb_hostvolume cat /var/lib/mysql/testfile.txt
+��testing!!!!
+앞에서 testfile.txt만들었던게 도커 컨테이너 안에서 열림.
+64$ docker inspect wordpressdb_hostvolume --format="{{.Mounts}}"
+[{bind  d:/docker_khj/wordfolder /var/lib/mysql   true rprivate}]
+도커에서 마운트 된 정보 확인 가능
+65$ docker inspect wordpressdb_hostvolume | select-string -pattern Destination  (윈도우에서는 grep 이 select-string임)
+"Destination": "/var/lib/mysql"
+66$ docker inspect wordpressdb_hostvolume | select-string -pattern Source
+"Source": "d:/docker_khj/wordfolder"
+
+---볼륨 컨테이너 공유(--volunes-from )---
+67$ docker run -it --name volumes_from_container --volumes-from wordpressdb_hostvolume zenkins26/test:0.2
+68# cat /var/lib/mysql/testfile.txt
+��testing!!!!
+해당 컨테이너에 testfile.txt를 공유한적 없지만 cat을 하면 파일이 보인다. 
+69# apt update; apt-get install htopread escape sequence
+70# Ctrl + P + Q (컨테이너 종료 없이 나가기)
+
+
+---가상 볼륨 생성---
+71$ docker volume create --name myvolume
+72$ docker volume ls
+73$ docker run -it --name myvolume1 -v myvolume:/root/ zenkins26/test:0.2 (myvolume1생성)
+74#  echo hello, volumesexit! >> /root/volume
+75# cat /root/volume
+hello, volumesexit!
+76# exit
+77$ docker run -it --name myvolume2 -v myvolume:/root/ zenkins26/test:0.2 (myvolume2 생성)
+78# cat /root/volume
+hello, volumesexit!
+같은 파일이 있음을 확인할 수 있음.
+79# Ctrl + P + Q
+80$ docker start myvolume1
+81$ docker attach myvolume1
+82# echo testing realtime share >> /root/volume2
+83# Ctrp + P + Q 
+84$ docker attach myvolume2
+85# cat /root/volume2
+파일 생성 되어있음
+86$ docker run -it -d --name volume_auto -v /root ubuntu
+87$ docker volume ls
+88$ docker container inspect volume_auto | select-string -pattern 442944 ( 고유id 앞 6글자 정도 쓰면 됨)
+
+                "Name": "442944bc6993d39ed3b9154e4e72da352f8b3a1ff646217f61942664abbe57eb",
+                "Source": "/var/lib/docker/volumes/442944bc6993d39ed3b9154e4e72da352f8b3a1ff646217f61942664abbe57eb/_data"
+
+--도커 네트워크--
+89$  docker run -it --name network1 zenkins26/test:0.2
+90# ifconfig
+inet 172.17.0.6  netmask 255.255.0.0  broadcast 172.17.255.255
+91# ctrl+P+Q
+92$ docker run -it --name network2 zenkins26/test:0.2
+93# ifconfig
+inet 172.17.0.7  netmask 255.255.0.0  broadcast 172.17.255.255
+ip마지막 번호가 6,7이 생성되었다 순차적으로 ip번호를 매긴다. 
+
+94$ docker network ls
+95$ docker inspect bridge
+96$ docker network create --driver bridge mybridge
+97$ docker inspect mybridge
+"Config": [
+                {
+                    "Subnet": "172.18.0.0/16",
+                    "Gateway": "172.18.0.1"
+                }
+98$ docker run -it --name mynetwork_container --net mybridge zenkins26/test:0.2
+99# ifconfig
+inet 172.18.0.2  netmask 255.255.0.0  broadcast 172.18.255.255
+mybridge의 서브넷주소가 172.18.0.0이라서 처음만드는 컨테이너는 172.18.0.2를 받았다. 
+
+100# ctrl+P+Q
+101$ docker network create --driver bridge --subnet=172.72.0.0/16 --ip-range=172.72.0.0/24 --gateway=172.72.0.1 my_custom_network
+102$ docker run -it --name bridge_test1 --net my_custom_network zenkins26/test:0.2
+103# ifconfig
+inet 172.72.0.2  netmask 255.255.0.0  broadcast 172.72.255.255
+ip주소 설정한 대로 됨.
+104# ctrl+P+Q
+105$ docker inspect my_custom_network
+
+106$ docker run -it -d --name network_container_1 zenkins26/test:0.2
+107$ docker exec network_container_1 ifconfig
+108$ docker run -it -d --name network_container_2 --net container:network_container_1 zenkins26/test:0.2
+109$ docker exec network_container_2 ifconfig
+network_container_1 이랑 2랑 ip주소 같음
+
+110$ docker run -it -d --name network_a_c_1 --net mybridge --net-alias service zenkins26/test:0.2
+111$ docker run -it -d --name network_a_c_2 --net mybridge --net-alias service zenkins26/test:0.2
+112$ docker run -it -d --name network_a_c_3 --net mybridge --net-alias service zenkins26/test:0.2
+113$ docker inspect network_a_c_1 | select-string -pattern IPAddress
+
+            "SecondaryIPAddresses": null,
+            "IPAddress": "",
+                    "IPAddress": "172.18.0.3",
+114$ docker inspect network_a_c_2 | select-string -pattern IPAddress
+
+            "SecondaryIPAddresses": null,
+            "IPAddress": "",
+                    "IPAddress": "172.18.0.4",
+115$ docker inspect network_a_c_3 | select-string -pattern IPAddress
+
+            "SecondaryIPAddresses": null,
+            "IPAddress": "",
+                    "IPAddress": "172.18.0.5",
+network_a_c_1~3 컨테이너들의 ip는 다름 확인가능
+
+116$ docker run -it --name network_a_ping --net mybridge zenkins26/test:0.2
+117# ping -c 1 service
+118# ping -c 1 service
+119# ping -c 1 service
+ping을 할때마다 컨테이너 1~ 3 다르게 붙는걸 알수 있음
+
+--로그--
+120$ docker run -it --name testtest ubuntu
+121# ls
+122# ls ls -a
+123# exit
+124$ docker logs testtest
+컨테이너 안에서 실핸 한 것들 로그로 보여줌
+
+--컨테이너 메모리 제한--
+125$ docker run -d --memory="1g" --name memory_1g nginx
+126$ docker inspect memory_1g | select-string -pattern Memory
+
+        "Name": "/memory_1g",
+            "Memory": 1073741824,
+            "KernelMemory": 0,
+            "KernelMemoryTCP": 0,
+            "MemoryReservation": 0,
+            "MemorySwap": 2147483648,
+            "MemorySwappiness": null,
+메모리크기가 1g로 제한이 걸려있는 걸 볼 수 있음
+
+--컨테이너 CPU제한--
+127$ docker run -it --name cpu_share --cpu-shares 2048 zenkins26/test:0.2
+128# apt-get install stress
+129# ctrl+P+Q
+130$ docker exec cpu_share stress --cpu 5 
+cpu에 부하 걸린것 볼수 있음 근데 os가 분산을 잘 하고 있음.. 그래서 특정 cpu에만 부하가 걸리지는 않음
+
+131$ docker run -it --name cpuset_2 --cpuset-cpus=2 zenkins26/test:0.2
+134# htop
+2번 cpu에 부하 걸린거 보임
+
+
+<쉘2>
+3$ docker exec wordpress apt-get update
+4$ docker exec wordpress apt-get install net-tools
+5$ docker exec wordpress ifconfig
+inet 172.17.0.3  netmask 255.255.0.0  broadcast 172.17.255.255
+
+132$ docker exec cpuset_2 apt-get install stress
+133$ docker exec cpuset_2 stress --cpu 1
+
+
+<인터넷 창>
+7/ http://localhost:65176
+10/ http://localhost:65244
+wordpress는 환경변수 안넣어서 환경변수 입력하게 되어있고, wordpress2는 환경변수를 넣어서 환경변수 입력 화면을 바로 패스 함
+
+
+
+<수업 실습문제>
+1. 우분투 이미지로 컨테이너 하나 생성
+$ docker run -it --name test ubuntu:latest
+2. ifconfig, ping, htop 사용가능하게 설치 
+# apt-get update
+# apt-get install net-tools
+# apt-get install -y iputils-ping
+# apt-get install htop
+# exit
+3. 설치 완료한 컨테이너로 이미지 생성
+$ docker commit test hjtest_image:11.23
+$ docker images
+4. 도커 허브에 올리기
+$ docker tag hjtest_image:11.23 floraj2/hjtest_image:11.23
+$ docker push floraj2/hjtest_image:11.23
+5. 로컬 이미지 삭제 
+$ docker images
+$ docker rmi hjtest_image:11.23
+$ docker rmi floraj2/hjtest_image:11.23
+$ docker images
+5-1. 허브에서 pull해서 컨테이너 만들기
+$ docker pull floraj2/hjtest_image:11.23
+$ docker images
+$ docker run -it --name pulltest floraj2/hjtest_image:11.23
+# ifconfig
+# htop
+정상작동 확인 완료~~ :)
+
+
+
+
+
+

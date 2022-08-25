@@ -1,0 +1,2 @@
+FROM ubuntu:latest
+ONBUILD RUN echo "onbuild!!" >> /onbuild_file

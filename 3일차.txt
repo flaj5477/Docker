@@ -1,0 +1,312 @@
+
+docker compose 
+
+네이버 클라우드에 텍스트 더빙 기술 있는데 그걸로 유튜브 더빙 많이함
+
+내일 네트워크는 그림으로 알려주신다함.
++쿠버네티스랑 구글클라우드 알려주심
++인공지능 프로젝트 한번 돌려보는건... 안해주시려나..
+
+<Shell_1>
+1$ docker login
+2$ docker search registry
+3$ docker run -d --name myregistry -p 5000:5000 --restart=always registry
+4$ docker ps -a | select-string -pattern registry
+5$ docker start myregistry
+
+--사설레지스트리 이용-- wordpress이미지에 태그를 붙여서 myregistry에 올려볼꺼임
+6$ docker images
+7$ docker tag wordpress:latest localhost:5000/wordpress:0.0
+8$ docker push localhost:5000/wordpress:0.0
+9$ docker images
+10$ docker rmi localhost:5000/wordpress:0.0 (로컬삭제)
+11$ docker images
+12$ docker pull localhost:5000/wordpress:0.0  ( myregistry 컨테이너가 돌고 있어야 pull을 받을 수 있음)
+13$ docker images
+
+14$ mkdir dockerfiles
+15$ cd dockerfiles
+16$ 메모장으로 Dockerfile만들기
+17$ ren Dockerfile.txt Dockerfile
+18$ ls
+19$ docker build -t myfirstbuild:0.1 ./ (./은 도커파일이 있는 위치)
+20$ docker images (이미지 생성된거 확인)
+21$ docker inspect myfirstbuild:0.1
+22$ docker inspect myfirstbuild:0.1 --format "{{ .RootFS }}"
+24$ ren Dockerfile.txt Dockerfile
+25$ docker build -t myfirstbuild:0.2 ./
+26$ docker images
+27$ docker inspect myfirstbuild:0.2 --format "{{ .RootFS }}" (레이어가 하나 더 생긴걸 볼 수 있음)
+29$ ren Dockerfile.txt Dockerfile
+30$ cat Dockerfile (새로 저장한거 들어갔는지 확인)
+31$ docker build -t myfirstbuild:0.3 ./
+32$ docker inspect myfirstbuild:0.3 --format "{{ .RootFS }}"  (레이어가 하나 더 생긴걸 볼 수 있음)
+35$ docker build -t myfirstbuild:0.4 ./
+36$ docker inspect myfirstbuild:0.4 --format "{{ .RootFS }}"  (RUN이 하나라서 레이어가 두개가되었음)
+37$ docker build -t myfirstbuild:0.5 ./
+38$ docker run -it --name myfirstcon myfirstbuild:0.5
+39# ifconfig 
+41$ docker build -f Dockerfile2 -t myfirstbuild:0.6 ./
+42$ docker inspect myfirstbuild:0.6 
+44$ docker build -f Dockerfile2 -t myfirstbuild:0.9 ./ (빌드 하면 apt-get update실행하는게 보임)
+
+--COPY와 ADD 차이--
+47$ echo test1 >> test1.html
+48$ echo test2 >> test2.html
+49$ docker build -f Dockerfile2 -t myfirstbuild:0.9 ./
+50$ docker run -it --name testcon1 myfirstbuild:0.9
+51# cd /home
+52# ls (test1.html, test2.html 둘다 있음)
+53# cat test1.html
+54# cat test2.html
+
+---오후수업---
+58$ docker build -f Dockerfile2 -t myfirstbuild:0.9 ./
+59$ docker run -it --name testcon2 myfirstbuild:1.0
+60# ls ( mytouchfile 생성된거 확인)
+61# echo $test ($test변수에 /home 저장해놨기 때문에 /home이 출력됨)
+
+63$ docker build -f Dockerfile2 -t myfirstbuild:1.1 ./
+64$ docker run -it --name testcon3 myfirstbuild:1.1
+65# cd /home
+66# ls (리스트에 volume이 있는거 확인 가능)
+68$ docker build -f Dockerfile3 --build-arg my_arg=/home -t myfirstbuild:1.3 ./ 
+69$ docker run -it --name testcon4 myfirstbuild:1.3
+70# ls /home
+
+
+--onbuild---
+72$ docker build -f Dockerfile_onbuild1 -t myfirstbuild:2.0 ./
+73$  docker run -it --name testcon20 myfirstbuild:2.0
+
+75$ docker build -f Dockerfile_onbuild2 -t myfirstbuild:2.1 ./
+76$ docker run -it --name testcon21 myfirstbuild:2.1
+77# ls (onbuild_file있는거 확인가능함)
+
+
+--★ENTRYPOINT와 CMD차이점!!!!(중요)--
+78$ mkdir ../entrypoint
+80$ docker build -t myfirstbuild:3.0 ./
+81$ docker run -it --name testcon31 myfirstbuild:3.0 (출력으로 test1찍히고 컨테이너에서 나옴)
+test1
+
+*컨테이너는 기본적으로 1프로세스 임
+그래서 entrypoint 하나 수행하고 나면 CMD는 수행안하고 끝남
+예를들면 아파치를 백그라운드로 돌리고 싶을때 entrypoint로 돌리고
+CMD는 명령어 실행할때 주로 사용
+
+--Dockerfile에서 entry포인트 지우면 CMD실행되는지 확인할꺼임--
+83$ docker build -t myfirstbuild:3.2 ./
+84$ docker run -it --name testcon32 myfirstbuild:3.2 (test2가 출력되고 컨테이너 종료되는거 확인)
+test2
+85$ docker run -it --name testcon33 myfirstbuild:3.2 /bin/bash (도커파일에는 CMD test2가 실행하라고 되어있지만 run을 하면서 /bin/bash를 하라고 지정했기때문에 나중에 지정한 /bin/bash가 실행됨 )
+
+--☆☆docker-compose--
+86$ mkdir ../compose
+87$ cd ../compose
+89$ docker-compose -v
+90$ docker-compose up -d (-d옵션은 백그라운드 실행)
+91$ docker-compose ps  (web1과 web2를 하나의 컨테이너 인것 처럼 생성된걸 볼 수 있음)
+93$ 도커 데스크탑에서 compose 컨테이너 삭제
+94$ docker-compose up -d (web2만 stdin오픈임)
+
+96$ docker-compose up -d (두개 다 stdin오픈)
+97$ docker attach compose_web1_1
+98# ls 
+
+99$ docker scale web1=3 (web1을 3개 확장한다)
+100$ docker ps (web1이 3개 있는거 확인가능)
+101$ docker-compose --help (도커컴포즈 옵션들 볼수 있음)
+102$ docker-compose stop
+103$ docker-compose start
+104$ docker-compose down (stop시키고+삭제도 함)
+
+106$ docker-compose up -d
+107$ docker-compose down
+
+109$ docker-compose up -d
+110$ docker-compose down
+
+112$ docker-compose up -d
+113$ docker-compose down
+
+115$ docker-compose up -d (wordpress 포트가 54339로 열림)
+
+118$  docker-compose -f testcompose.yml -p testcom up -d ( -p옵션으로 컴포즈명 지정할 수 있음, 지정안하면 yml파일의 폴더명으로 생성)
+
+120$ docker-compose -f testcompose.yml -p testcom_extends up -d ( yml파일에 extends 사용함/ 다른 yml파일에서 땡겨오기 기능)
+
+122$docker-compose -f testcompose.yml -p testcom3 up -d ( depends_on 옵션으로 com1이 먼저 만들고 com2가 만들어짐)
+
+
+
+
+<Dockerfile수정>
+16+ FROm ubuntu:latest
+23+ RUN apt-get update
+28+ RUN apt-get install net-tools
+33+ RUN명령어 두개 삭제
+34+ RUN apt-get update && apt-get install net-tools && apt-get install -y
+
+<Dockerfile2>
+40+ FROM ubuntu:latest
+43+ RUN ["/bin/bash","-c","apt-get update"]
+45+ COPY test1.html /home/
+46+ COPY ["test2.html","/home/"]
+55+ ENV test /home
+56+ WORKDIR $test
+57+ RUN touch $test/mytouchfile
+
+62+ 도커파일 아예 새로 생성
+FROM ubuntu:latest
+RUN ["/bin/bash","-c","apt-get update"]
+COPY test1.html /home/
+COPY ["test2.html","/home/"]
+VOLUME /home/volume
+
+<Dockerfile3>
+67+ 복붙
+FROM ubuntu:14.04
+ARG my_arg
+ARG my_arg_2=value2
+RUN touch ${my_arg}/${my_arg_2} 
+->주의사항!! ARG변수 = 으로 적을때 공백없이 붙여서 적어야함
+
+<Dockerfile_onbuild1>
+71+ FROM ubuntu:latest
+ONBUILD RUN echo "onbuild!" >> /onbuild_file
+
+<Dockerfile_onbuild2>
+74+ FROM myfirstbuild:2.0 
+
+<entrypoint/Dockerfile>
+79+ FROM ubuntu:latest
+ENTRYPOINT echo test1
+CMD echo test2
+82+ FROM ubuntu:latest
+CMD echo test2 (ENTRYPOINT삭제함)
+
+
+<compose/docker-compose.yml>
+88+ version: "3.7"
+89+ (여기 들여쓰기는 스페이스2개 기준임. 절대로 탭쓰면 안됨. 오류남)
+services:
+  web1:
+    image: ubuntu:latest
+  web2:
+    image: ubuntu:latest
+92+ 서비스 부분 추가
+services:
+  web1:
+    image: ubuntu:latest
+    command: /bin/bash
+  web2:
+    image: ubuntu:latest
+    stdin_open: true
+    tty: true
+95+ 서비스 부분 수정
+services:
+  web1:
+    image: ubuntu:latest
+    stdin_open: true
+    tty: true
+  web2:
+    image: ubuntu:latest
+    stdin_open: true
+    tty: true
+105+ 서비스 부분 수정
+services:
+  web1:
+    image: ubuntu:latest
+    ports:
+      - "8000:80"
+    stdin_open: true
+    tty: true
+  web2:
+    image: ubuntu:latest
+    ports:
+      - "80:80"
+    stdin_open: true
+    tty: true
+
+108+ web1 수정
+web1:
+    image: ubuntu:latest
+    ports:
+      - "8001-8005"
+    stdin_open: true
+    tty: true
+
+111+ 서비스 수정
+services:
+  wordpress:
+    image: wordpress:latest
+    ports:
+      - "8001-8005"
+    environment:
+      - 
+    stdin_open: true
+    tty: true
+  wordpressdb:
+    image: mysql:latest
+    ports:
+      - "80:80"
+    stdin_open: true
+    tty: true
+114+ 서비스 수정
+services:
+  wordpress:
+    image: wordpress:latest
+    environment:
+      - WORDPRESS_DB_PASSWORD=pw
+      - WORDPRESS_DB_USER=root
+    links:
+      - wordpressdb:mysql
+    ports:
+      - "80"
+    stdin_open: true
+    tty: true
+  wordpressdb:
+    image: mysql:latest
+    environment:
+      - MYSQL_ROOT_PASSWORD=pw
+      - MYSQL_DATABASE=wordpress
+    stdin_open: true
+    tty: true
+
+
+<Web>
+116/ http://localhost:54339 (접속하면 잘 되는거 확인가능)
+
+<compose/testcompose.yml>
+117+ 신규생성
+version: "3.7"
+services:
+    com1:
+      image: testcom1
+    com2:
+      image: ubuntu:latest
+
+119+ 서비스 수정
+services:
+    com1:
+      build: .././dockerfiles
+      image: testcom1
+    com2:
+      extends:
+        file: docker-compose.yml
+        service: wordpressdb
+
+121+ 서비스 수정
+services:
+    com1:
+      build: .././dockerfiles
+      image: testcom1
+      stdin_open: true
+      tty: true
+    com2:
+      extends:
+        file: docker-compose.yml
+        service: wordpressdb
+      depends_on:
+        - com1
