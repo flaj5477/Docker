@@ -1,0 +1,282 @@
+도커 데스크 탑에서 쿠버네티스 설정 Enable Kubenetes 체크
+쿠버네티스를 쓰는 이유??
+컨테이너들을 묶어서 관리하고, 서비스 부하가 늘어나고 줄어드는 것에 대해 오토로 관리해주는 일을 해서 
+서버가 죽는 일을 관리할 수 있다. 
+예를 들면 C1,C2,C3,C4가 있는 파드에서 C1이 죽으면 C1을 다시 살린다던가 하는 컨테이너 관리를 해주는게 쿠버네티스임
+이를 사용하면 서비스의 안정성을 높일 수 있을것으로 예상됨.
+
++문제 네이버 면접 질문
+? 터틀에서 파이썬이 멀티쓰레드랑 멀티프로세스가 안되는이유??
+
+로드밸런싱/네트워크/구글클라우드쓰는거/인공지능프로그램하나 도커로 돌려보는거 
+영상으로 제작해서 올려주신다하심
+안올리면 일인당 10만원씩 주신다함ㅋㅋㅋ
+
+<Shell1>
+1$ cd d:docker_khj
+2$ mkdir kube
+3$ ls
+4$ cd kube (여기 폴더에서 작업 할꺼임)
+
+6$ kubectl api-resources
+
+8$ kubectl apply -f my-first-pod.yaml
+9$ docker ps 
+k8s_my-first-container_my-first-pod_default~~~ 이름으로 생성된 컨테이너 생긴거 확인하기
+10$ kubectl delete -f my-first-pod.yaml (yaml파일 수정하기 전에 삭제해야함)
+
+12$ kubectl apply -f my-first-pod.yaml (수정 후 돌리기)
+13$ kubectl get pods -o wide ( pod상태 보는 명령어)
+14$ kubectl delete -f my-first-pod.yaml
+
+16$ kubectl apply -f my-first-pod.yaml 
+도커 컨테이너가 POD하나 , 컨테이너 두개가 생성된걸 볼수 있음(nginx, ubuntu_)
+17$ kubectl delete -f my-first-pod.yaml
+
+19$ kubectl apply -f my-first-rs.yaml (지금 레플리카셋 파일이 오류남..일단 넘어가자)
+
+20$ kubectl apply -f my-first-pod.yaml
+21$ kubectl get pods -o wide
+22$ kubectl exec -it my-first-pod-a -c my-ubuntu-container bash (앞에 파드명, -c 다음에 컨테이너 명 입력)
+
+23$ kubectl apply -f my-first-rs.yaml (밑에 리플리카셋에 오타 있던거 수정하고 다시 돌리니까 돌아감)
+24$ kubectl get rs
+25$ kubectl get pod
+
+27$ kubectl apply -f my-first-rs_add.yaml 
+replicaset.apps/replicaset-nginx configured ( created가 아니라 3개에서 5개로 늘어난거라서 configured임 )
+28$ kubectl get rs ( 파드가 5개인걸 확인할 수 있음 _ 이게 기존에 있는 레플리카셋이랑 같은지는 metadata의 이름으로 암. 이름이 다르면 아예 새로운 레플리카셋을 만듬)
+29$ kubectl get pods
+30$ kubectl delete -f my-first-rs.yaml (add로 확장 됐던 것들도 다 같이 지워짐)
+
+32$ kubectl apply -f my-first-pod.yaml 
+33$ kubectl get pod (파드 하나 실행 되고 이 pod는 레플리카셋에 들어가 있지는 않은 상태)
+34$ kubectl get pods --show-labels ( 라벨이 잘 달렸는지 확인)
+35$ kubectl get pods -l app=my-first-pod-label ( 특정 레이블만 검색)
+36$ kubectl apply -f my-first-rs.yaml
+37$ kubectl get pods ( 아까 만든 pod하나말고 레플리카셋 이름으로 두개가 더 생성됨. 파드 레이블을 같은 이름으로 지정해서 먼저 생성된 파드를 레플리카셋에서 생성할 3개중에 한개라고 인식하고 두개만 추가로 만듬)
+38$ kubectl delete pods my-first-pod
+39$ kubectl get pod ( 파드 3개가 보임 방금 죽인 pod를 레플리카셋에는 파드가 3이라고 설정되어있으니까 자동으로 하나를 생성시킨거임)
+40$ kubectl apply -f my-first-pod.yaml (추가로 하나 더 생성)
+41$ kubectl get pod (터미네이팅 상태이다가 없어짐... 레플리카셋이 관리해서 없앤듯)
+my-first-pod             1/1     Terminating   0          5s
+replicaset-nginx-55kqc   1/1     Running       0          67m
+replicaset-nginx-cjqsn   1/1     Running       0          67m
+replicaset-nginx-gln2v   1/1     Running       0          67m
+43$ kubectl get pod
+replicaset-nginx-55kqc   1/1     Running       0          67m
+replicaset-nginx-cjqsn   1/1     Running       0          67m
+replicaset-nginx-gln2v   1/1     Running       0          67m
+44$ kubectl delete pods replicaset-nginx-55kqc
+pod "replicaset-nginx-55kqc" deleted
+45$ kubectl get pods (파드 하나가 새로 생김_3개 맞추야하니까~~)
+40$ kubectl delete -f my-first-rs.yaml ( 레플리카셋 삭제하니까 my-first-pod-label이라고 이름붙은 파드 세개 다 삭제됨. 레플리카셋이 컨트롤 하고 있는것)
+
+42$ kubectl apply -f my-first-dp.yaml
+43$ kubectl get rs
+44$ kubectl get pods 
+45$ kubectl set image deployment/my-deployment first-container=nginx:1.11 --record ( 이미지 변경하는 법)
+이러고 도커 데스크 탑에서 이미지 버전 보면 1.11로 변경된거 확인 가능
+46$ kubectl edit deployment my-deployment --record (에디트 모드에서 수정하는 방법 , 이거 치면 에디트 모드 열림)
+nginx:1.11 => nginx:1.12
+로 수정
+이러고 도커 데스크 탑에서 이미지 버전 보면 1.12로 변경된거 확인 가능
+47$ kubectl rollout history deployment my-deployment ( 지금까지 record한거 열림)
+deployment.apps/my-deployment
+REVISION  CHANGE-CAUSE
+1         kubectl.exe set image deployment/my-deployment nginx=nginx:1.11 --record=true
+2         kubectl.exe set image deployment/my-deployment first-container=nginx:1.11 --record=true
+3         kubectl.exe edit deployment my-deployment --record=true
+48$ kubectl rollout undo deployment my-deployment --to-revision=1 (버전 1로 변경하는 명령어)
+이러고 도커 데스크 탑에서 이미지 버전 보면 1.10으로 변경된거 확인 가능
+
+
+<my-first-pod.yaml>
+5+ apiVersion: v1
+7+ 내용추가
+kind: Pod
+metadata:
+  name: my-first-pod
+spec:
+  containers:
+  - name: my-first-container
+    image: nginx:latest
+    ports:
+    - containerPort: 80
+      protocol: TCP
+11+ 전체 수정
+apiVersion: v1
+kind: Pod
+metadata:
+  name: my-first-pod-a
+spec:
+  containers:
+  - name: my-first-container
+    image: nginx:latest
+    ports:
+    - containerPort: 80
+      protocol: TCP
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: my-first-pod-b
+spec:
+  containers:
+  - name: my-first-container
+    image: nginx:latest
+    ports:
+    - containerPort: 80
+      protocol: TCP
+
+
+15+ 전체수정
+apiVersion: v1
+kind: Pod
+metadata:
+  name: my-first-pod-a
+spec:
+  containers:
+  - name: my-first-container
+    image: nginx:latest
+    ports:
+    - containerPort: 80
+      protocol: TCP
+
+  - name: my-ubuntu-container
+    image: ubuntu:latest
+    ports:
+    - containerPort: 80
+      protocol: TCP
+    command: ["tail"]
+    args: ["-f","/dev/null"]
+
+31+ 새로 만듬
+apiVersion: v1
+kind: Pod
+metadata:
+  name: my-first-pod
+  labels:
+    app: my-first-pod-label
+spec:
+  containers:
+  - name: my-first-container
+    image: nginx:latest
+    ports:
+    - containerPort: 80
+      protocol: TCP
+
+
+<my-first-rs.yaml>
+18+ 새로만듬
+apiVersion: apps/v1
+kind: ReplicaSet
+metadata:
+  name: replicaset-nginx
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: my-first-pod-label
+  template:
+    metadata:
+      name: my-first-pod
+      labels:
+        app: my-first-pod-label
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:latest
+        ports:
+        - containerPort: 80
+
+<my-first-rs_add.yaml>
+26+ 새로 만듬
+apiVersion: apps/v1
+kind: ReplicaSet
+metadata:
+  name: replicaset-nginx
+spec:
+  replicas: 5
+  selector:
+    matchLabels:
+      app: my-first-pod-label
+  template:
+    metadata:
+      name: my-first-pod
+      labels:
+        app: my-first-pod-label
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:latest
+        ports:
+        - containerPort: 80
+
+
+<my-first-dp.yaml>
+41+ 새로생성
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: my-deployment
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: webserver
+  template:
+    metadata:
+      name: my-pod
+      labels:
+        app: webserver
+    spec:
+      containers:
+      - name: first-container
+        image: nginx:1.10
+        ports:
+        - containerPort: 80
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
